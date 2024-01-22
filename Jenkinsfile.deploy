@@ -279,7 +279,7 @@ pipeline {
                                 createYamlFile(helm_file,"Helm.yaml")
                             }
                         }else {
-                            echo '' >  vault.yaml
+                            sh 'touch "vault.yaml"'
                             String helm_file = parseYaml(env.JENKINS_METADATA)
                             echo helm_file
                             createYamlFile(helm_file,"Helm.yaml")
