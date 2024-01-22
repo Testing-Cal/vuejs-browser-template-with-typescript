@@ -37,14 +37,14 @@ def pushToCollector(){
   print("Inside pushToCollector...........")
     def job_name = "$env.JOB_NAME"
     def job_base_name = "$env.JOB_BASE_NAME"
-    String generalProperties = parseJsonString(env.JENKINS_METADATA,'general')
-    generalPresent = parseJsonArray(generalProperties)
-    if(generalPresent.tenant != '' &&
-    generalPresent.lazsaDomainUri != ''){
+    String metaDataProperties = parseJsonString(env.JENKINS_METADATA,'general')
+    metadataVars = parseJsonArray(metaDataProperties)
+    if(metadataVars.tenant != '' &&
+    metadataVars.lazsaDomainUri != ''){
       echo "Job folder - $job_name"
       echo "Pipeline Name - $job_base_name"
       echo "Build Number - $currentBuild.number"
-      sh """curl -k -X POST '${generalPresent.lazsaDomainUri}/collector/orchestrator/devops/details' -H 'X-TenantID: ${generalPresent.tenant}' -H 'Content-Type: application/json' -d '{\"jobName\" : \"${job_base_name}\", \"projectPath\" : \"${job_name}\", \"agentId\" : \"${generalPresent.agentId}\", \"devopsConfigId\" : \"${generalPresent.devopsSettingId}\", \"agentApiKey\" : \"${generalPresent.agentApiKey}\", \"buildNumber\" : \"${currentBuild.number}\" }' """
+      sh """curl -k -X POST '${metadataVars.lazsaDomainUri}/collector/orchestrator/devops/details' -H 'X-TenantID: ${metadataVars.tenant}' -H 'Content-Type: application/json' -d '{\"jobName\" : \"${job_base_name}\", \"projectPath\" : \"${job_name}\", \"agentId\" : \"${metadataVars.agentId}\", \"devopsConfigId\" : \"${metadataVars.devopsSettingId}\", \"agentApiKey\" : \"${metadataVars.agentApiKey}\", \"buildNumber\" : \"${currentBuild.number}\" }' """
     }
 }
 
@@ -81,27 +81,27 @@ pipeline {
             steps {
                 script {
                     // For Context Path read
-                    String generalProperties = parseJsonString(env.JENKINS_METADATA,'general')
-                    generalPresent = parseJsonArray(generalProperties)
+                    String metaDataProperties = parseJsonString(env.JENKINS_METADATA,'general')
+                    metadataVars = parseJsonArray(metaDataProperties)
 
                     //Getting Container Registry URL
-                    env.REGISTRY_URL = generalPresent.containerImagePath
-                    env.BUILD_TAG = generalPresent.containerImageTag
+                    env.REGISTRY_URL = metadataVars.containerImagePath
+                    env.BUILD_TAG = metadataVars.containerImageTag
 
-                    env.ARTIFACTORY_CREDENTIALS = generalPresent.artifactorySecret
-                    env.SONAR_CREDENTIAL_ID = generalPresent.sonarSecret
-                    env.ARTIFACTORY = generalPresent.artifactory
-                    env.STAGE_FLAG = generalPresent.stageFlag
-                    env.DOCKERHOST = generalPresent.dockerHostIP
-                    env.RELEASE_NAME = generalPresent.name
-                    env.PROJECT_TEMPLATE_ACTIVE = generalPresent.dynamicJenkinsStage
-                    env.CUSTOM_STAGE_SEQ = generalPresent.dynamicJenkinsStageSequence
+                    env.ARTIFACTORY_CREDENTIALS = metadataVars.artifactorySecret
+                    env.SONAR_CREDENTIAL_ID = metadataVars.sonarSecret
+                    env.ARTIFACTORY = metadataVars.artifactory
+                    env.STAGE_FLAG = metadataVars.stageFlag
+                    env.DOCKERHOST = metadataVars.dockerHostIP
+                    env.RELEASE_NAME = metadataVars.name
+                    env.PROJECT_TEMPLATE_ACTIVE = metadataVars.dynamicJenkinsStage
+                    env.CUSTOM_STAGE_SEQ = metadataVars.dynamicJenkinsStageSequence
                     env.LIST = "${env.PROJECT_TEMPLATE_ACTIVE == 'true' ? env.CUSTOM_STAGE_SEQ : env.DEFAULT_STAGE_SEQ}"
                     def listValue = "$env.LIST"
                     def list = listValue.split(',')
                     print(list)
 
-                    env.CONTEXT = generalPresent.contextPath
+                    env.CONTEXT = metadataVars.contextPath
                     env.BUILD_TAG = "${BUILD_NUMBER}"
 
 
@@ -152,8 +152,8 @@ pipeline {
                         else if ("${list[i]}" == "'SonarQubeScan'" && stage_flag['sonarScan']) {
                             stage('SonarQube Scan ') {
                                 // stage details here
-                                 def sonar_org = "${generalPresent.sonarOrg}";
-                                 def sonar_project_key = "${generalPresent.sonarProjectKey}";
+                                 def sonar_org = "${metadataVars.sonarOrg}";
+                                 def sonar_project_key = "${metadataVars.sonarProjectKey}";
                                  if(sonar_org != null && sonar_org != '' && sonar_org != 'default-organization') {
                                      sonar_project_key = "${sonar_org}" + "_" + "${sonar_project_key}";
                                  }
@@ -161,10 +161,10 @@ pipeline {
                                  if (env.SONAR_CREDENTIAL_ID != null && env.SONAR_CREDENTIAL_ID != '') {
                                     withCredentials([usernamePassword(credentialsId: "$SONAR_CREDENTIAL_ID", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                                          sh """
-                                           sed -i s+#SONAR_URL#+"${generalPresent.sonarHost}"+g ./sonar-project.properties
+                                           sed -i s+#SONAR_URL#+"${metadataVars.sonarHost}"+g ./sonar-project.properties
                                            sed -i s+#SONAR_LOGIN#+$PASSWORD+g ./sonar-project.properties
                                            sed -i s+#RELEASE_NAME#+"${sonar_project_key}"+g ./sonar-project.properties
-                                           sed -i s+#SONAR_ORGANIZATION#+"${generalPresent.sonarOrg}"+g ./sonar-project.properties
+                                           sed -i s+#SONAR_ORGANIZATION#+"${metadataVars.sonarOrg}"+g ./sonar-project.properties
                                            docker run --rm --user root -v "$WORKSPACE":/home/circleci/app $NODE_IMAGE /bin/bash -c "chown -R root:root /home/circleci/app && cd /home/circleci/app &&  npm install sonarqube-scanner -f && npm run sonar"
                                            sudo chown -R `id -u`:`id -g` "$WORKSPACE"
                                          """
@@ -176,7 +176,7 @@ pipeline {
                                           sed -i s+#SONAR_URL#+$SONAR_HOST_URL+g ./sonar-project.properties
                                           sed -i s+#SONAR_LOGIN#+$SONAR_AUTH_TOKEN+g ./sonar-project.properties
                                           sed -i s+#RELEASE_NAME#+"${sonar_project_key}"+g ./sonar-project.properties
-                                          sed -i s+#SONAR_ORGANIZATION#+"${generalPresent.sonarOrg}"+g ./sonar-project.properties
+                                          sed -i s+#SONAR_ORGANIZATION#+"${metadataVars.sonarOrg}"+g ./sonar-project.properties
                                          docker run --rm --user root -v "$WORKSPACE":/home/circleci/app $NODE_IMAGE /bin/bash -c "chown -R root:root /home/circleci/app && cd /home/circleci/app &&  npm install sonarqube-scanner -f && npm run sonar"
                                          sudo chown -R `id -u`:`id -g` "$WORKSPACE"
                                          """
@@ -207,14 +207,38 @@ pipeline {
                                       }
                                    } */
                                    echo "value of CONTEXT = $CONTEXT"
-                                    if ((env.DEPLOYMENT_TYPE == 'EC2' || env.DEPLOYMENT_TYPE == 'KUBERNETES' || env.DEPLOYMENT_TYPE == 'OPENSHIFT') && (env.CONTEXT == 'null' || env.CONTEXT == '/')) {
+                                    if (env.CONTEXT == 'null' || env.CONTEXT == '/') {
                                         sh 'docker build -t "$REGISTRY_URL:$BUILD_TAG" -t "$REGISTRY_URL:latest" --build-arg DEFAULT_PORT=$SERVICE_PORT -f DockerfileNoContext .'
                                     }
-                                    else if ((env.DEPLOYMENT_TYPE == 'EC2' || env.DEPLOYMENT_TYPE == 'KUBERNETES' || env.DEPLOYMENT_TYPE == 'OPENSHIFT') && env.CONTEXT != 'null') {
+                                    else if (env.CONTEXT != 'null') {
                                         sh 'docker build -t "$REGISTRY_URL:$BUILD_TAG" -t "$REGISTRY_URL:latest" --build-arg DEFAULT_PORT=$SERVICE_PORT -f Dockerfile .'
                                     }
                                }
-                        } else if ("${list[i]}" == "'PublishContainerImage'") {
+                        } else if ("${list[i]}" == "'containerImageScan'" && stage_flag['containerScan']) {
+                              stage("Container Image Scan") {
+                                  if (env.CONTAINERSCANTYPE == 'XRAY') {
+                                      jf 'docker scan $REGISTRY_URL:$BUILD_TAG'
+                                  }
+                                  if(env.CONTAINERSCANTYPE == 'QUALYS'){
+                                       getImageVulnsFromQualys credentialsId: "${metadataVars.qualysCredentialId}", imageIds: env.REGISTRY_URL+":"+env.BUILD_TAG, pollingInterval: '30', useLocalConfig: true, apiServer: "${metadataVars.qualysServerURL}", platform: 'PCP', vulnsTimeout: '600'
+                                  }
+                                  if(env.CONTAINERSCANTYPE == 'RAPID7'){
+                                      assessContainerImage failOnPluginError: true,
+                                                  imageId: env.REGISTRY_URL+":"+env.BUILD_TAG,
+                                                  thresholdRules: [
+                                                          exploitableVulnerabilities(action: 'Mark Unstable', threshold: '1'),
+                                                          criticalVulnerabilities(action: 'Fail', threshold: '1')
+                                                  ],
+                                                  nameRules: [
+                                                          vulnerablePackageName(action: 'Fail', contains: 'nginx')
+                                                  ]
+                                  }
+                                  if(env.CONTAINERSCANTYPE == 'SYSDIG'){
+                                     sh 'echo  $REGISTRY_URL:$BUILD_TAG > sysdig_secure_images'
+                                          sysdig inlineScanning: true, bailOnFail: true, bailOnPluginFail: true, name: 'sysdig_secure_images'
+                                  }
+                              }
+                          } else if ("${list[i]}" == "'PublishContainerImage'") {
                                 stage('Publish Container Image') {   // no changes
                                     // stage details here
                                     echo "Publish Container Image"
@@ -234,29 +258,6 @@ pipeline {
                                     sh 'docker push "$REGISTRY_URL:latest"'
 
                                 }
-                        } else if ("${list[i]}" == "'QualysScan'" && stage_flag['qualysScan']) {
-                            stage('Qualys Scan') {
-                                getImageVulnsFromQualys credentialsId: "${generalPresent.qualysCredentialId}", imageIds: env.REGISTRY_URL+":"+env.BUILD_TAG, pollingInterval: '30', useLocalConfig: true, apiServer: "${generalPresent.qualysServerURL}", platform: 'PCP', vulnsTimeout: '600'
-                            }
-                        }
-                        else if ("${list[i]}" == "'Rapid7Scan'" && stage_flag['rapid7Scan']) {
-                            stage('Rapid7 Scan') {
-                                assessContainerImage failOnPluginError: true,
-                                        imageId: env.REGISTRY_URL+":"+env.BUILD_TAG,
-                                        thresholdRules: [
-                                                exploitableVulnerabilities(action: 'Mark Unstable', threshold: '1'),
-                                                criticalVulnerabilities(action: 'Fail', threshold: '1')
-                                        ],
-                                        nameRules: [
-                                                vulnerablePackageName(action: 'Fail', contains: 'nginx')
-                                        ]
-                            }
-                        }
-                        else if ("${list[i]}" == "'SysdigScan'" && stage_flag['sysdigScan']) {
-                            stage('Sysdig Scan') {
-                                sh 'echo  $REGISTRY_URL:$BUILD_TAG > sysdig_secure_images'
-                                sysdig inlineScanning: true, bailOnFail: true, bailOnPluginFail: true, name: 'sysdig_secure_images'
-                            }
                         }
                     }
                 }
