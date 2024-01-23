@@ -242,7 +242,7 @@ pipeline {
                     env.ARTIFACTORY_CREDENTIALS = metadataVars.artifactorySecret
                     env.ARTIFACTORY = metadataVars.artifactory
 
-                    env.CONTAINERSCANTYPE = metadataVars.containerScanType
+                    env.STAGE_FLAG = metadataVars.stageFlag
                     env.DOCKERHOST = metadataVars.dockerHostIP
                     env.RELEASE_NAME = metadataVars.name
                     env.PROJECT_TEMPLATE_ACTIVE = metadataVars.dynamicJenkinsStage
@@ -259,6 +259,15 @@ pipeline {
                     env.TESTCASECOMMAND = metadataVars.testcaseCommand
                     env.TESTINGTOOLTYPE = metadataVars.testingToolType
                     env.BROWSERTYPE = metadataVars.browserType
+
+                    if (env.STAGE_FLAG != 'null' && env.STAGE_FLAG != null) {
+                        stage_flag = parseJson("$env.STAGE_FLAG")
+                    } else {
+                        stage_flag = parseJson('{"qualysScan": false, "sonarScan": true, "zapScan": false, "rapid7Scan": false, "sysdig": false, "FunctionalTesting": false}')
+                    }
+                    if (!stage_flag) {
+                       stage_flag = parseJson('{"qualysScan": false, "sonarScan": true, "zapScan": false, "rapid7Scan": false, "sysdig": false, "FunctionalTesting": false}')
+                    }
 
                     if (env.DEPLOYMENT_TYPE == 'KUBERNETES' || env.DEPLOYMENT_TYPE == 'OPENSHIFT') {
                         String kubeProperties = parseJsonString(env.JENKINS_METADATA,'kubernetes')
