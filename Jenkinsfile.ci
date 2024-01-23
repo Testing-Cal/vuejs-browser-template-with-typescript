@@ -58,7 +58,7 @@ pipeline {
     agent { label agentLabel }
     environment {
 
-        DEFAULT_STAGE_SEQ = "'Initialization','Build','UnitTests','SonarQubeScan','BuildContainerImage','QualysScan','PublishContainerImage'"
+        DEFAULT_STAGE_SEQ = "'Initialization','Build','UnitTests','SonarQubeScan','BuildContainerImage','containerImageScan','PublishContainerImage'"
         BRANCHES = "${env.GIT_BRANCH}"
         COMMIT = "${env.GIT_COMMIT}"
         SERVICE_PORT = "${APP_PORT}"
@@ -92,6 +92,7 @@ pipeline {
                     env.SONAR_CREDENTIAL_ID = metadataVars.sonarSecret
                     env.ARTIFACTORY = metadataVars.artifactory
                     env.STAGE_FLAG = metadataVars.stageFlag
+                    env.CONTAINERSCANTYPE = metadataVars.containerScanType
                     env.DOCKERHOST = metadataVars.dockerHostIP
                     env.RELEASE_NAME = metadataVars.name
                     env.PROJECT_TEMPLATE_ACTIVE = metadataVars.dynamicJenkinsStage

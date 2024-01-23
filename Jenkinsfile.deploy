@@ -242,6 +242,7 @@ pipeline {
                     env.ARTIFACTORY_CREDENTIALS = metadataVars.artifactorySecret
                     env.ARTIFACTORY = metadataVars.artifactory
 
+                    env.CONTAINERSCANTYPE = metadataVars.containerScanType
                     env.DOCKERHOST = metadataVars.dockerHostIP
                     env.RELEASE_NAME = metadataVars.name
                     env.PROJECT_TEMPLATE_ACTIVE = metadataVars.dynamicJenkinsStage
@@ -506,7 +507,7 @@ pipeline {
                                     }
                                 }
                             }
-                        } else if ("${list[i]}" == "'FunctionalTests'" && env.ACTION == 'DEPLOY' && "${metadataVars.functionalTesting}" == "true") {
+                        } else if ("${list[i]}" == "'FunctionalTests'" && env.ACTION == 'DEPLOY' && stage_flag['FunctionalTesting']) {
                             stage('Functional Tests') {
                                 waitforsometime()
                                 dir('testcaseRepo') {
