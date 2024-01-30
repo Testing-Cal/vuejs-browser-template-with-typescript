@@ -379,7 +379,7 @@ pipeline {
 
                             }
                         }
-                        else if ("${list[i]}" == "'Deploy'" && env.ACTION == 'DEPLOY') {
+                        else if ("${list[i]}" == "'Deploy'") {
                             stage('Deploy') {
                                 // stage details here
                                 if (env.ACTION == 'DEPLOY' || env.ACTION == 'PROMOTE' || env.ACTION == 'ROLLBACK') {
