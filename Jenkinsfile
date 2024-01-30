@@ -335,9 +335,7 @@ pipeline {
                  stage('SonarQube Scan') {
                       def sonar_org = "${metadataVars.sonarOrg}";
                       def sonar_project_key = "${metadataVars.sonarProjectKey}";
-                      if(sonar_org != null && sonar_org != '' && sonar_org != 'default-organization') {
-                          sonar_project_key = "${sonar_org}" + "_" + "${sonar_project_key}";
-                      }
+
                     
                      if (env.SONAR_CREDENTIAL_ID != null && env.SONAR_CREDENTIAL_ID != '') {
                        withCredentials([usernamePassword(credentialsId: "$SONAR_CREDENTIAL_ID", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
