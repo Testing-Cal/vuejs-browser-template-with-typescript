@@ -21,7 +21,7 @@ updateStrategy:
 
 ingress:
   enabled: false
-  className: nginx
+  ingressClass: nginx
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
   paths:
@@ -33,8 +33,8 @@ serviceAccountName: default
 mountServiceAccountToken: false
 
 securityContext:
-  #runAsUser: 0
-  #runAsNonRoot: false
+  runAsUser: 1000
+  runAsNonRoot: false
   readOnlyRootFilesystem: false
   allowPrivilegeEscalation: false
   privileged: false
@@ -97,7 +97,6 @@ autoscaling:
 #        - type: Pods
 #          value: 1
 #          periodSeconds: 300
-
 
 #extraEnv: |
 #  - name: TEST
