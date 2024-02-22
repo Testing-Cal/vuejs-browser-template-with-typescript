@@ -206,12 +206,7 @@ pipeline {
                                       }
                                    } */
                                    echo "value of CONTEXT = $CONTEXT"
-                                    if (env.CONTEXT == 'null' || env.CONTEXT == '/') {
-                                        sh 'docker build -t "$REGISTRY_URL:$BUILD_TAG" -t "$REGISTRY_URL:latest" --build-arg DEFAULT_PORT=$SERVICE_PORT -f DockerfileNoContext .'
-                                    }
-                                    else if (env.CONTEXT != 'null') {
-                                        sh 'docker build -t "$REGISTRY_URL:$BUILD_TAG" -t "$REGISTRY_URL:latest" --build-arg DEFAULT_PORT=$SERVICE_PORT -f Dockerfile .'
-                                    }
+                                   sh 'docker build -t "$REGISTRY_URL:$BUILD_TAG" -t "$REGISTRY_URL:latest" --build-arg DEFAULT_PORT=$SERVICE_PORT --build-arg CONTEXT=$CONTEXT -f Dockerfile .'
                                }
                         } else if ("${list[i]}" == "'containerImageScan'" && stage_flag['containerScan']) {
                               stage("Container Image Scan") {

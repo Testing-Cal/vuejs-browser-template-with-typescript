@@ -414,12 +414,7 @@ pipeline {
                                   }
                                } */
                              echo "value of CONTEXT = $CONTEXT"
-                             if ((env.DEPLOYMENT_TYPE == 'EC2' || env.DEPLOYMENT_TYPE == 'KUBERNETES' || env.DEPLOYMENT_TYPE == 'OPENSHIFT') && (env.CONTEXT == 'null' || env.CONTEXT == '/')) {
-                                 sh 'docker build -t "$REGISTRY_URL:$BUILD_TAG" -t "$REGISTRY_URL:latest" --build-arg DEFAULT_PORT=$SERVICE_PORT -f DockerfileNoContext .'
-                             }
-                             else if ((env.DEPLOYMENT_TYPE == 'EC2' || env.DEPLOYMENT_TYPE == 'KUBERNETES' || env.DEPLOYMENT_TYPE == 'OPENSHIFT') && env.CONTEXT != 'null') {
-                                 sh 'docker build -t "$REGISTRY_URL:$BUILD_TAG" -t "$REGISTRY_URL:latest" --build-arg DEFAULT_PORT=$SERVICE_PORT -f Dockerfile .'
-                             }
+                             sh 'docker build -t "$REGISTRY_URL:$BUILD_TAG" -t "$REGISTRY_URL:latest" --build-arg DEFAULT_PORT=$SERVICE_PORT --build-arg CONTEXT=$CONTEXT -f Dockerfile .'
                          }
                 }else if ("${list[i]}" == "'PublishContainerImage'" && (env.ACTION == 'DEPLOY' || env.ACTION == 'PROMOTE')) {
                           stage('Publish Container Image') {   // no changes
