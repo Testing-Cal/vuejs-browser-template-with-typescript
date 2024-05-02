@@ -53,7 +53,7 @@ spec:
             - name: port
               value: "{{ .Values.service.internalport }}"
             {{- with .Values.extraEnv }}
-            {{- tpl . $ | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
             {{- end }}
           envFrom:
             {{- with .Values.extraEnvFrom }}
