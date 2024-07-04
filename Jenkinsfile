@@ -533,17 +533,17 @@ pipeline {
                                        //sh 'ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "echo $SECRETS > secrets"'
                                        sh 'rm -rf .secrets'
                                        if (env.DEPLOYMENT_TYPE == 'EC2' && env.CONTEXT == 'null') {
-                                           sh """ ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "docker run -d --restart always --name "${metadataVars.repoName}"  --env-file docker-env -p ${dockerData.hostPort}:$SERVICE_PORT -e PORT=$SERVICE_PORT $REGISTRY_URL:$BUILD_TAG" """
+                                           sh """ ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "docker run -d --restart always --name "${metadataVars.repoName}"  --env-file docker-env -p ${dockerData.hostPort}:$SERVICE_PORT -e port=$SERVICE_PORT $REGISTRY_URL:$BUILD_TAG" """
                                        } else if (env.DEPLOYMENT_TYPE == 'EC2' && env.CONTEXT != 'null') {
-                                           sh """ ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "docker run -d --restart always --name "${metadataVars.repoName}"  --env-file docker-env   -p ${dockerData.hostPort}:$SERVICE_PORT -e context=$CONTEXT -e PORT=$SERVICE_PORT $REGISTRY_URL:$BUILD_TAG" """
+                                           sh """ ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "docker run -d --restart always --name "${metadataVars.repoName}"  --env-file docker-env   -p ${dockerData.hostPort}:$SERVICE_PORT -e context=$CONTEXT -e port=$SERVICE_PORT $REGISTRY_URL:$BUILD_TAG" """
                                        }
                                    }
                                } else {
 
                                    if (env.DEPLOYMENT_TYPE == 'EC2' && env.CONTEXT == 'null') {
-                                       sh """ ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "docker run -d --restart always --name "${metadataVars.repoName}" -p ${dockerData.hostPort}:$SERVICE_PORT -e PORT=$SERVICE_PORT $REGISTRY_URL:$BUILD_TAG" """
+                                       sh """ ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "docker run -d --restart always --name "${metadataVars.repoName}" -p ${dockerData.hostPort}:$SERVICE_PORT -e port=$SERVICE_PORT $REGISTRY_URL:$BUILD_TAG" """
                                    } else if (env.DEPLOYMENT_TYPE == 'EC2' && env.CONTEXT != 'null') {
-                                       sh """ ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "docker run -d --restart always --name "${metadataVars.repoName}" -p ${dockerData.hostPort}:$SERVICE_PORT -e context=$CONTEXT -e PORT=$SERVICE_PORT $REGISTRY_URL:$BUILD_TAG" """
+                                       sh """ ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "docker run -d --restart always --name "${metadataVars.repoName}" -p ${dockerData.hostPort}:$SERVICE_PORT -e context=$CONTEXT -e port=$SERVICE_PORT $REGISTRY_URL:$BUILD_TAG" """
                                    }
                                }
                            }
