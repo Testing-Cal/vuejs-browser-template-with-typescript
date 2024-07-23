@@ -58,7 +58,7 @@ pipeline {
     agent { label agentLabel }
     environment {
 
-        DEFAULT_STAGE_SEQ = "'Initialization','Build','UnitTests','SonarQubeScan','BuildContainerImage','containerImageScan','PublishContainerImage'"
+        DEFAULT_STAGE_SEQ = "'Initialization','Build','UnitTests','SonarQubeScan','BuildContainerImage','ContainerImageScan','PublishContainerImage'"
         BRANCHES = "${env.GIT_BRANCH}"
         COMMIT = "${env.GIT_COMMIT}"
         SERVICE_PORT = "${APP_PORT}"
@@ -208,7 +208,7 @@ pipeline {
                                    echo "value of CONTEXT = $CONTEXT"
                                    sh 'docker build -t "$REGISTRY_URL:$BUILD_TAG" -t "$REGISTRY_URL:latest" --build-arg DEFAULT_PORT=$SERVICE_PORT --build-arg CONTEXT=$CONTEXT -f Dockerfile .'
                                }
-                        } else if ("${list[i]}" == "'containerImageScan'" && stage_flag['containerScan']) {
+                        } else if ("${list[i]}" == "'ContainerImageScan'" && stage_flag['containerScan']) {
                               stage("Container Image Scan") {
                                   if (env.CONTAINERSCANTYPE == 'XRAY') {
                                       jf 'docker scan $REGISTRY_URL:$BUILD_TAG'
