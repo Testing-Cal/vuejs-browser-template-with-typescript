@@ -1,5 +1,5 @@
 # stage1 as builder
-FROM node:16.13.2 as builder
+FROM node:20.11.1 as builder
 
 # copy the package.json to install dependencies
 COPY package.json package-lock.json ./
@@ -16,7 +16,7 @@ RUN sed -i "s|"/\basepath"|"${CONTEXT}"|g" .env
 # Build the project and copy the files
 RUN VITE_CONTEXT_PATH=${CONTEXT} npm run build
 
-FROM node:16.13.2
+FROM node:20.11.1
 ARG CONTEXT='/'
 
 #!/bin/sh
