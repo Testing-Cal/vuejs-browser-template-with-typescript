@@ -339,26 +339,26 @@ pipeline {
                     
                      if (env.SONAR_CREDENTIAL_ID != null && env.SONAR_CREDENTIAL_ID != '') {
                        withCredentials([usernamePassword(credentialsId: "$SONAR_CREDENTIAL_ID", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                            sh """
-                              sed -i s+#SONAR_URL#+"${metadataVars.sonarHost}"+g ./sonar-project.properties
-                              sed -i s+#SONAR_LOGIN#+$PASSWORD+g ./sonar-project.properties
-                              sed -i s+#RELEASE_NAME#+"${sonar_project_key}"+g ./sonar-project.properties
-                              sed -i s+#SONAR_ORGANIZATION#+"${metadataVars.sonarOrg}"+g ./sonar-project.properties
-                              docker run --rm --user root -v "$WORKSPACE":/opt/repo -w /opt/repo $NODE_IMAGE /bin/bash -c "chown -R root:root /opt/repo && npm install sonarqube-scanner -f && npm run sonar"
-                              sudo chown -R `id -u`:`id -g` "$WORKSPACE"
-                            """
+                            sh '''
+                               sed -i s+#SONAR_URL#+"$sonar_host"+g ./sonar-project.properties
+                               sed -i s+#SONAR_LOGIN#+$PASSWORD+g ./sonar-project.properties
+                               sed -i s+#RELEASE_NAME#+"$sonar_project_key"+g ./sonar-project.properties
+                               sed -i s+#SONAR_ORGANIZATION#+"$sonar_org"+g ./sonar-project.properties
+                               docker run --rm --user root -v "$WORKSPACE":/opt/repo -w /opt/repo $NODE_IMAGE /bin/bash -c "chown -R root:root /opt/repo && npm install sonarqube-scanner -f && npm run sonar"
+                               sudo chown -R `id -u`:`id -g` "$WORKSPACE"
+                             '''
                           }        
                     }
                      else{
-                             withSonarQubeEnv('pg-sonar') {
-                             sh """
-                             sed -i s+#SONAR_URL#+$SONAR_HOST_URL+g ./sonar-project.properties
-                             sed -i s+#SONAR_LOGIN#+$SONAR_AUTH_TOKEN+g ./sonar-project.properties
-                             sed -i s+#RELEASE_NAME#+"${sonar_project_key}"+g ./sonar-project.properties
-                             sed -i s+#SONAR_ORGANIZATION#+"${metadataVars.sonarOrg}"+g ./sonar-project.properties
-                            docker run --rm --user root -v "$WORKSPACE":/opt/repo -w /opt/repo $NODE_IMAGE /bin/bash -c "chown -R root:root /opt/repo && npm install sonarqube-scanner -f && npm run sonar"
-                            sudo chown -R `id -u`:`id -g` "$WORKSPACE"
-                            """
+                           withSonarQubeEnv('pg-sonar') {
+                             sh '''
+                               sed -i s+#SONAR_URL#+$SONAR_HOST_URL+g ./sonar-project.properties
+                               sed -i s+#SONAR_LOGIN#+$SONAR_AUTH_TOKEN+g ./sonar-project.properties
+                               sed -i s+#RELEASE_NAME#+"$sonar_project_key"+g ./sonar-project.properties
+                               sed -i s+#SONAR_ORGANIZATION#+"$sonar_org"+g ./sonar-project.properties
+                               docker run --rm --user root -v "$WORKSPACE":/opt/repo -w /opt/repo $NODE_IMAGE /bin/bash -c "chown -R root:root /opt/repo && npm install sonarqube-scanner -f && npm run sonar"
+                               sudo chown -R `id -u`:`id -g` "$WORKSPACE"
+                              '''
                           }
                     }
                   }
@@ -549,10 +549,11 @@ pipeline {
                            }
                            if (env.DEPLOYMENT_TYPE == 'KUBERNETES' || env.DEPLOYMENT_TYPE == 'OPENSHIFT') {
                                withCredentials([file(credentialsId: "$KUBE_SECRET", variable: 'KUBECONFIG'), usernamePassword(credentialsId: "$ARTIFACTORY_CREDENTIALS", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                                  sh """
-                                     sed -i s+#SERVICE_NAME#+"${metadataVars.helmReleaseName}"+g ./helm_chart/values.yaml ./helm_chart/Chart.yaml
+                                  env.helmReleaseName = "${metadataVars.helmReleaseName}"
+                                  sh '''
+                                     sed -i s+#SERVICE_NAME#+"$helmReleaseName"+g ./helm_chart/values.yaml ./helm_chart/Chart.yaml
                                      docker run --rm  --user root -v "$KUBECONFIG":"$KUBECONFIG" -e KUBECONFIG="$KUBECONFIG" $KUBECTL_IMAGE_VERSION create ns "$namespace_name" || true
-                                  """
+                                  '''
                                   if (env.DEPLOYMENT_TYPE == 'OPENSHIFT') {
 
                                     sh '''
@@ -581,13 +582,13 @@ pipeline {
                                          docker run --rm  --user root -v "$KUBECONFIG":"$KUBECONFIG" -e KUBECONFIG="$KUBECONFIG" $KUBECTL_IMAGE_VERSION -n "$namespace_name" create secret docker-registry $kube_secret_name_for_registry --docker-server="$ACR_LOGIN_URL" --docker-username="\"$USERNAME\"" --docker-password="\"$PASSWORD\"" || true
                                        '''
                                    }
-                                   sh """
+                                   sh '''
                                    ls -lart
                                    echo "context: $CONTEXT" >> Helm.yaml
                                    cat Helm.yaml
-                                   sed -i s+#SERVICE_NAME#+"${metadataVars.helmReleaseName}"+g ./helm_chart/values.yaml ./helm_chart/Chart.yaml
-                                   docker run --rm  --user root -v "$KUBECONFIG":"$KUBECONFIG" -e KUBECONFIG="$KUBECONFIG" -v "$WORKSPACE":/apps -w /apps $HELM_IMAGE_VERSION upgrade --install "${metadataVars.helmReleaseName}" -n "$namespace_name" helm_chart --atomic --timeout 300s --set image.repository="$REGISTRY_URL" --set image.tag="$BUILD_TAG" --set image.registrySecret="$kube_secret_name_for_registry"  --set service.internalport="$SERVICE_PORT" -f Helm.yaml
-                                   """
+                                   sed -i s+#SERVICE_NAME#+"$helmReleaseName"+g ./helm_chart/values.yaml ./helm_chart/Chart.yaml
+                                   docker run --rm  --user root -v "$KUBECONFIG":"$KUBECONFIG" -e KUBECONFIG="$KUBECONFIG" -v "$WORKSPACE":/apps -w /apps $HELM_IMAGE_VERSION upgrade --install "$helmReleaseName" -n "$namespace_name" helm_chart --atomic --timeout 300s --set image.repository="$REGISTRY_URL" --set image.tag="$BUILD_TAG" --set image.registrySecret="$kube_secret_name_for_registry"  --set service.internalport="$SERVICE_PORT" -f Helm.yaml
+                                   '''
                                }
                            }
                        }
@@ -614,9 +615,10 @@ pipeline {
                  }
                  if (env.DEPLOYMENT_TYPE == 'KUBERNETES' || env.DEPLOYMENT_TYPE == 'OPENSHIFT') {
                    withCredentials([file(credentialsId: "$KUBE_SECRET", variable: 'KUBECONFIG')]) {
-                      sh """
-                      docker run --rm  --user root -v "$KUBECONFIG":"$KUBECONFIG" -e KUBECONFIG="$KUBECONFIG" -v "$WORKSPACE":/apps -w /apps $HELM_IMAGE_VERSION uninstall "${metadataVars.helmReleaseName}" -n "$namespace_name"
-                      """
+                      env.helmReleaseName = "${metadataVars.helmReleaseName}"
+                      sh '''
+                      docker run --rm  --user root -v "$KUBECONFIG":"$KUBECONFIG" -e KUBECONFIG="$KUBECONFIG" -v "$WORKSPACE":/apps -w /apps $HELM_IMAGE_VERSION uninstall "$helmReleaseName" -n "$namespace_name"
+                      '''
                    }
                  }
                 }
