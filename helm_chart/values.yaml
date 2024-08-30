@@ -34,6 +34,8 @@ ingress:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
   #albExtraAnnotations:
+  #agicAnnotations:
+  #agicExtraAnnotations:
   controllerType: nginx
   nginxAnnotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
