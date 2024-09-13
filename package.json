@@ -28,7 +28,7 @@
     "@vue/eslint-config-typescript": "^11.0.3",
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.5.1",
-    "eslint": "^8.39.0",
+    "eslint": "^8.57.0",
     "eslint-plugin-vue": "^9.27.0",
     "jsdom": "^24.1.1",
     "karma-sonarqube-unit-reporter": "^0.0.23",
