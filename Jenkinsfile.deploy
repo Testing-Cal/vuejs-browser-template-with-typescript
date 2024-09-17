@@ -430,14 +430,15 @@ pipeline {
                                                     withVault([configuration: vaultConfigurations, vaultSecrets: [vaultSecretConfigData]]) {
                                                         def data = []
                                                         for(secret in dockerEnv){
-                                                            sh "echo $secret"
+                                                            //sh "echo $secret"
                                                         }
                                                         for(keys in secretkeys){
-                                                            sh "echo $keys=\$(cat .$keys) >> .secrets"
+                                                            env.keys = "$keys"
+                                                       sh '''set +x; echo ${keys}=\$(cat .${keys}) >> .secrets '''
                                                         }
-                                                        sh 'cat .secrets;'
+                                                        sh '''set +x; cat .secrets;'''
                                                     }
-                                                    def result = sh(script: 'cat .secrets', returnStdout: true)
+                                                    // def result = sh(script: 'cat .secrets', returnStdout: true)
 
                                                     sh 'scp -o "StrictHostKeyChecking=no" .secrets ciuser@$DOCKERHOST:/home/ciuser/docker-env'
                                                     //sh 'ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "echo $SECRETS > secrets"'
