@@ -434,21 +434,22 @@ pipeline {
                                                         }
                                                         for(keys in secretkeys){
                                                             env.keys = "$keys"
-                                                       sh '''set +x; echo ${keys}=\$(cat .${keys}) >> .secrets '''
+                                                       sh '''set +x; echo ${keys}=\$(cat .${keys}) >> .${RELEASE_NAME} '''
                                                         }
-                                                        sh '''set +x; cat .secrets;'''
+                                                        sh '''set +x; cat .${RELEASE_NAME};'''
                                                     }
-                                                    // def result = sh(script: 'cat .secrets', returnStdout: true)
+                                                    // def result = sh(script: 'cat .${RELEASE_NAME}', returnStdout: true)
 
-                                                    sh 'scp -o "StrictHostKeyChecking=no" .secrets ciuser@$DOCKERHOST:/home/ciuser/docker-env'
+                                                    sh 'scp -o "StrictHostKeyChecking=no" .${RELEASE_NAME} ciuser@$DOCKERHOST:/home/ciuser/.${RELEASE_NAME}'
                                                     //sh 'ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "echo $SECRETS > secrets"'
-                                                    sh 'rm -rf .secrets'
+                                                    sh 'rm -rf .${RELEASE_NAME}'
                                                     if (env.DEPLOYMENT_TYPE == 'EC2' && env.CONTEXT == 'null') {
-                                                    sh """ ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "docker run -d --restart always --name "${metadataVars.repoName}"  --env-file docker-env -p ${dockerData.hostPort}:$SERVICE_PORT -e port=$SERVICE_PORT $REGISTRY_URL:$BUILD_TAG" """
+                                                    sh """ ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "docker run -d --restart always --name "${metadataVars.repoName}"  --env-file .${RELEASE_NAME} -p ${dockerData.hostPort}:$SERVICE_PORT -e port=$SERVICE_PORT $REGISTRY_URL:$BUILD_TAG" """
                                                     }
                                                     else if (env.DEPLOYMENT_TYPE == 'EC2' && env.CONTEXT != 'null') {
-                                                    sh """ ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "docker run -d --restart always --name "${metadataVars.repoName}"  --env-file docker-env   -p ${dockerData.hostPort}:$SERVICE_PORT -e context=$CONTEXT -e port=$SERVICE_PORT $REGISTRY_URL:$BUILD_TAG" """
+                                                    sh """ ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "docker run -d --restart always --name "${metadataVars.repoName}"  --env-file .${RELEASE_NAME}   -p ${dockerData.hostPort}:$SERVICE_PORT -e context=$CONTEXT -e port=$SERVICE_PORT $REGISTRY_URL:$BUILD_TAG" """
                                                     }
+                                                    sh """ ssh -o "StrictHostKeyChecking=no" ciuser@$DOCKERHOST "rm -rf /home/ciuser/.${RELEASE_NAME}" """
 
                                                 }
                                             }
