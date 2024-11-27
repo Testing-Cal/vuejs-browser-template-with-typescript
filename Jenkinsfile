@@ -333,8 +333,10 @@ pipeline {
                }
                else if ("${list[i]}" == "'SonarQubeScan'" && env.ACTION == 'DEPLOY' && stage_flag['sonarScan']) {
                  stage('SonarQube Scan') {
-                      def sonar_org = "${metadataVars.sonarOrg}";
-                      def sonar_project_key = "${metadataVars.sonarProjectKey}";
+                      env.sonar_org = "${metadataVars.sonarOrg}"
+                      env.sonar_project_key = "${metadataVars.sonarProjectKey}"
+                      env.sonar_host = "${metadataVars.sonarHost}"
+
 
                     
                      if (env.SONAR_CREDENTIAL_ID != null && env.SONAR_CREDENTIAL_ID != '') {
