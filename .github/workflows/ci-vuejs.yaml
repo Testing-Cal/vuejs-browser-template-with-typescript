@@ -1,0 +1,97 @@
+name: CI-Dev
+on: [push, workflow_dispatch]
+
+jobs:
+  continuous-integration:
+    runs-on: ${{ vars.RUNNER_NAME_DEV }}
+    environment:
+      name: Dev
+    env:
+      CI_IMAGE: ${{ vars.CI_IMAGE }}
+      KUBECTL_IMAGE_VERSION: "bitnami/kubectl:1.28" #https://hub.docker.com/r/bitnami/kubectl/tags
+      HELM_IMAGE_VERSION: "alpine/helm:3.8.1" #https://hub.docker.com/r/alpine/helm/tags
+      OC_IMAGE_VERSION: "quay.io/openshift/origin-cli:4.9.0" #https://quay.io/repository/openshift/origin-cli?tab=tags
+      SONAR_IMAGE_VERSION: "sonarsource/sonar-scanner-cli:11.0"
+
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+          
+      - name: Initialization
+        run: |
+          JSON_STRING='${{ vars.BUILD_METADATA }}'
+         
+          echo "REGISTRY_URL=$(echo "$JSON_STRING" | jq -r '.general.containerImagePath')" >> "$GITHUB_ENV"
+          echo "BUILD_TAG=${{ github.run_number }}"  >> "$GITHUB_ENV"
+          echo "ARTIFACTORY_CREDENTIALS=$(echo "$JSON_STRING" | jq -r '.general.artifactorySecret')"  >> "$GITHUB_ENV"
+          echo "SONAR_CREDENTIAL_ID=$(echo "$JSON_STRING" | jq -r '.general.sonarSecret')"  >> "$GITHUB_ENV"
+          echo "ARTIFACTORY=$(echo "$JSON_STRING" | jq -r '.general.artifactory')"  >> "$GITHUB_ENV"
+          echo "STAGE_FLAG=$(echo "$JSON_STRING" | jq -r '.general.stageFlag')"  >> "$GITHUB_ENV"
+          echo "CONTAINER_SCAN_TYPE=$(echo "$JSON_STRING" | jq -r '.general.containerScanType')"  >> "$GITHUB_ENV"
+          echo "DOCKERHOST=$(echo "$JSON_STRING" | jq -r '.general.dockerHostIP')"  >> "$GITHUB_ENV"
+          echo "RELEASE_NAME=$(echo "$JSON_STRING" | jq -r '.general.name')"  >> "$GITHUB_ENV"
+          echo "CONTEXT=$(echo "$JSON_STRING" | jq -r '.general.contextPath')" >> "$GITHUB_ENV"
+          echo "SONAR_ORG=$(echo "$JSON_STRING" | jq -r '.general.sonarOrg')" >> "$GITHUB_ENV"
+          echo "SONAR_HOST=$(echo "$JSON_STRING" | jq -r '.general.sonarHost')" >> "$GITHUB_ENV"
+          echo "SONAR_PROJECT_KEY=$(echo "$JSON_STRING" | jq -r '.general.sonarProjectKey')" >> "$GITHUB_ENV"
+          echo "ARTIFACTORY_USER_SECRET=$(echo "$JSON_STRING" | jq -r '.general.ArtifactoryUserSecret')" >> "$GITHUB_ENV"
+          echo "ARTIFACTORY_PASSWORD_SECRET=$(echo "$JSON_STRING" | jq -r '.general.ArtifactoryPasswordSecret')" >> "$GITHUB_ENV"
+          echo "ARTIFACT_HOST_SECRET=$(echo "$JSON_STRING" | jq -r '.general.ArtifactoryHostSecret')" >> "$GITHUB_ENV"
+          export REGISTRY_URL="$(echo "$JSON_STRING" | jq -r '.general.containerImagePath')"
+          echo "DOCKER_LOGIN_URL=$(echo "$REGISTRY_URL" | cut -d'/' -f1)" >> "$GITHUB_ENV"
+          
+
+      - name: Build
+        run: |
+          echo "no build"
+
+      - name: Unit Test
+        run: |
+          docker run --rm --user root -v "$GITHUB_WORKSPACE":/opt/repo -w /opt/repo $CI_IMAGE /bin/bash -c "cd /opt/repo &&  npm install && npm run test && npm run coverage"
+    
+      - name: SonarQube Scan
+        run: |
+         
+          sed -i s+#SONAR_URL#+"$SONAR_HOST"+g ./sonar-project.properties
+          sed -i s+#SONAR_LOGIN#+"${{ secrets[env.SONAR_CREDENTIAL_ID] }}"+g ./sonar-project.properties
+          sed -i s+#RELEASE_NAME#+"$SONAR_PROJECT_KEY"+g ./sonar-project.properties
+          sed -i s+#SONAR_ORGANIZATION#+"$SONAR_ORG"+g ./sonar-project.properties
+          cat ./sonar-project.properties
+          docker run --rm --user root -v "$GITHUB_WORKSPACE":/opt/repo -w /opt/repo $CI_IMAGE /bin/bash -c "chown -R root:root /opt/repo && npm install sonarqube-scanner -f && npm run sonar"
+
+      - name: Build Container Image
+        run: |
+          docker build -t "$REGISTRY_URL:$BUILD_TAG" -t "$REGISTRY_URL:latest" .
+      
+      - name: Setup JFrog CLI
+        if: env.CONTAINER_SCAN_TYPE == 'XRAY'
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: "https://${{ env.DOCKER_LOGIN_URL }}"
+          JF_ACCESS_TOKEN: ${{ secrets[env.ARTIFACTORY_PASSWORD_SECRET] }}
+
+      - name: Container Image Scan
+        if: env.CONTAINER_SCAN_TYPE == 'XRAY'
+        run: jf docker scan $REGISTRY_URL:$BUILD_TAG
+          
+      - name: Publish Container Image
+        run: |
+          echo "DOCKER_LOGIN_URL=$(echo "$REGISTRY_URL" | cut -d'/' -f1)" >> "$GITHUB_ENV"
+          if [[ $ARTIFACTORY == "ECR" ]]
+          then
+            ECR_REGION=$(echo "$REGISTRY_URL" | cut -d'.' -f4)
+            set +x 
+            AWS_ACCESS_KEY_ID=${{ secrets[env.ARTIFACTORY_USER_SECRET] }} AWS_SECRET_ACCESS_KEY=${{ secrets[env.ARTIFACTORY_PASSWORD_SECRET] }} aws ecr get-login-password --region "$ECR_REGION" | docker login --username AWS --password-stdin $DOCKER_LOGIN_URL 
+            set -x
+          else
+            docker login -u ${{ secrets[env.ARTIFACTORY_USER_SECRET] }} -p ${{ secrets[env.ARTIFACTORY_PASSWORD_SECRET] }} "$DOCKER_LOGIN_URL"
+          fi
+          
+          docker push "$REGISTRY_URL:$BUILD_TAG"
+          docker push "$REGISTRY_URL:latest"
+
+          
+      
+        
+      
